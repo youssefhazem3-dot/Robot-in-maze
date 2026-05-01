@@ -118,11 +118,10 @@ with st.sidebar:
     col1, col2 = st.columns(2)
     start_btn = col1.button("▶ Start")
     pause_btn = col2.button("⏸ Pause")
-
     reset_btn = st.button("🔄 Reset")
 
-# ── State init ──
-if "maze" not in st.session_state or reset_btn:
+# ── FIX: Only initialize state once, or when reset is explicitly clicked ──
+def init_state(size):
     maze, cols, rows = gen_maze(size)
     st.session_state.maze = maze
     st.session_state.cols = cols
@@ -131,12 +130,22 @@ if "maze" not in st.session_state or reset_btn:
     st.session_state.running = False
     st.session_state.visited = set()
     st.session_state.path = None
-    st.session_state.robot = (1,1)
+    st.session_state.robot = (1, 1)
+    st.session_state.initialized = True
+    st.session_state.last_size = size
+
+# Initialize on first load only
+if "initialized" not in st.session_state:
+    init_state(size)
+
+# Reset when button is clicked OR when size changes
+if reset_btn or st.session_state.get("last_size") != size:
+    init_state(size)
 
 maze = st.session_state.maze
 cols = st.session_state.cols
 rows = st.session_state.rows
-start = (1,1)
+start = (1, 1)
 goal = (cols-2, rows-2)
 
 # ── Control logic ──
@@ -148,10 +157,9 @@ if start_btn:
 if pause_btn:
     st.session_state.running = False
 
-# ── Animation loop ──
+# ── Draw current state ──
 placeholder = st.empty()
 
-# Always draw something first (IMPORTANT FIX)
 fig = draw_maze(
     maze,
     cols,
