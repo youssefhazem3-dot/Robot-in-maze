@@ -3,7 +3,6 @@ import random
 import heapq
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
-import numpy as np
 import time
 
 st.set_page_config(page_title="Robot Maze", page_icon="🤖", layout="wide")
@@ -43,8 +42,8 @@ def gen_maze(size):
     divide(maze, 1, 1, cols - 2, rows - 2)
     return maze, cols, rows
 
-# ── A* as generator ──
-def astar_steps(maze, start, goal, cols, rows):
+# ── A* solver ──
+def astar(maze, start, goal, cols, rows):
     def h(x, y):
         return abs(x - goal[0]) + abs(y - goal[1])
 
@@ -60,8 +59,7 @@ def astar_steps(maze, start, goal, cols, rows):
             continue
 
         visited.add(cur)
-
-        yield visited, None  # intermediate step
+        yield cur, visited.copy(), None  # 👈 step
 
         if cur == goal:
             path = []
@@ -69,13 +67,12 @@ def astar_steps(maze, start, goal, cols, rows):
                 path.append(cur)
                 cur = came_from[cur]
             path.append(start)
-            yield visited, path[::-1]
+            yield cur, visited.copy(), path[::-1]
             return
 
         cx, cy = cur
         for dx, dy in [(0,-1),(0,1),(-1,0),(1,0)]:
             nx, ny = cx + dx, cy + dy
-
             if 0 <= nx < cols and 0 <= ny < rows and maze[ny][nx] == 0:
                 ng = g + 1
                 if ng < g_score.get((nx, ny), float('inf')):
@@ -84,7 +81,7 @@ def astar_steps(maze, start, goal, cols, rows):
                     heapq.heappush(open_heap, (ng + h(nx, ny), ng, (nx, ny)))
 
 # ── Drawing ──
-def draw_maze(maze, cols, rows, path=None, visited=None, start=None, goal=None):
+def draw_maze(maze, cols, rows, path=None, visited=None, robot=None, start=None, goal=None):
     fig, ax = plt.subplots(figsize=(6, 6))
     ax.set_facecolor('#0d0d0d')
 
@@ -101,8 +98,9 @@ def draw_maze(maze, cols, rows, path=None, visited=None, start=None, goal=None):
         for (x, y) in path:
             ax.add_patch(patches.Rectangle((x, rows-y-1), 1, 1, color='#4ecdc4'))
 
-    if start:
-        ax.text(start[0]+0.5, rows-start[1]-0.5, "🤖", ha='center', va='center')
+    # 🤖 moving robot
+    if robot:
+        ax.text(robot[0]+0.5, rows-robot[1]-0.5, "🤖", ha='center', va='center')
 
     if goal:
         ax.text(goal[0]+0.5, rows-goal[1]-0.5, "🎯", ha='center', va='center')
@@ -114,13 +112,14 @@ def draw_maze(maze, cols, rows, path=None, visited=None, start=None, goal=None):
     return fig
 
 # ── UI ──
-st.title("🤖 Robot Maze (Smooth Animation)")
+st.markdown("<h1>🤖 Robot Maze</h1>", unsafe_allow_html=True)
 
 with st.sidebar:
-    size = st.select_slider("Grid Size", [11,15,21,25,31], value=21)
-    speed = st.slider("Speed", 0.001, 0.02, 0.005)
+    size = st.select_slider("Grid Size", [11,15,21,25,31,41], value=21)
+    speed = st.slider("Speed", 0.001, 0.05, 0.01)
     gen_btn = st.button("New Maze")
     solve_btn = st.button("Solve")
+    show_visited = st.checkbox("Show visited cells", True)
 
 # ── State ──
 if 'maze' not in st.session_state or gen_btn:
@@ -128,6 +127,9 @@ if 'maze' not in st.session_state or gen_btn:
     st.session_state.maze = maze
     st.session_state.cols = cols
     st.session_state.rows = rows
+    st.session_state.path = None
+    st.session_state.visited = None
+    st.session_state.solved = False
 
 maze = st.session_state.maze
 cols = st.session_state.cols
@@ -138,21 +140,50 @@ goal = (cols-2, rows-2)
 
 placeholder = st.empty()
 
-# ── Animate ──
+# ── Solve animation ──
 if solve_btn:
-    for visited, path in astar_steps(maze, start, goal, cols, rows):
+    for cur, visited, path in astar(maze, start, goal, cols, rows):
 
         fig = draw_maze(
             maze,
             cols,
             rows,
             path=path,
-            visited=visited,
+            visited=visited if show_visited else None,
+            robot=cur,
             start=start,
             goal=goal
         )
 
         placeholder.pyplot(fig)
         plt.close(fig)
+        time.sleep(speed)
 
-        time.sleep(speed)  # 👈 smooth + reliable
+    st.session_state.path = path
+    st.session_state.visited = visited
+    st.session_state.solved = True
+
+# ── Default view (important fix) ──
+if not solve_btn:
+    fig = draw_maze(maze, cols, rows, start=start, goal=goal)
+    placeholder.pyplot(fig)
+
+# ── Status ──
+if st.session_state.solved and st.session_state.path:
+    st.success(f"Path found — {len(st.session_state.path)-1} steps · {len(st.session_state.visited)} nodes visited")
+elif st.session_state.solved:
+    st.error("No path found")
+else:
+    st.info("Ready — hit Solve")
+
+# ── Metrics ──
+m1, m2, m3, m4 = st.columns(4)
+
+path_len = len(st.session_state.path)-1 if st.session_state.path else "—"
+visited_count = len(st.session_state.visited) if st.session_state.visited else "—"
+open_cells = sum(1 for r in range(rows) for c in range(cols) if maze[r][c] == 0)
+
+m1.metric("Path Length", path_len)
+m2.metric("Nodes Visited", visited_count)
+m3.metric("Open Cells", open_cells)
+m4.metric("Grid Size", f"{cols}×{rows}")
