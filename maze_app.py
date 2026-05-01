@@ -136,24 +136,33 @@ def gen_maze(size):
 
 
 # ── A* solver ──
-def astar(maze, start, goal, cols, rows):
+def astar_steps(maze, start, goal, cols, rows):
     def h(x, y):
         return abs(x - goal[0]) + abs(y - goal[1])
+
+    import heapq
 
     g_score = {start: 0}
     came_from = {}
     visited = set()
     open_heap = [(h(*start), 0, start)]
     frontier = set([start])
-    all_visited = []
 
     while open_heap:
         f, g, cur = heapq.heappop(open_heap)
+
         if cur in visited:
             continue
+
         visited.add(cur)
         frontier.discard(cur)
-        all_visited.append(cur)
+
+        # 👇 yield current step
+        yield {
+            "current": cur,
+            "visited": list(visited),
+            "path": None
+        }
 
         if cur == goal:
             path = []
@@ -161,20 +170,27 @@ def astar(maze, start, goal, cols, rows):
                 path.append(cur)
                 cur = came_from[cur]
             path.append(start)
-            return path[::-1], all_visited
+
+            # 👇 final path
+            yield {
+                "current": cur,
+                "visited": list(visited),
+                "path": path[::-1]
+            }
+            return
 
         cx, cy = cur
         for dx, dy in [(0, -1), (0, 1), (-1, 0), (1, 0)]:
             nx, ny = cx + dx, cy + dy
+
             if 0 <= nx < cols and 0 <= ny < rows and maze[ny][nx] == 0:
                 ng = g + 1
+
                 if ng < g_score.get((nx, ny), float('inf')):
                     came_from[(nx, ny)] = cur
                     g_score[(nx, ny)] = ng
                     heapq.heappush(open_heap, (ng + h(nx, ny), ng, (nx, ny)))
                     frontier.add((nx, ny))
-
-    return None, all_visited
 
 
 # ── Plotting ──
@@ -273,10 +289,29 @@ start = (1, 1)
 goal = (cols - 2, rows - 2)
 
 # Solve
+import time
+
 if solve_btn:
-    path, visited = astar(maze, start, goal, cols, rows)
-    st.session_state.path = path
-    st.session_state.visited = visited
+    placeholder = st.empty()
+
+    for step in astar_steps(maze, start, goal, cols, rows):
+        fig = draw_maze(
+            maze,
+            cols,
+            rows,
+            path=step["path"],
+            visited=step["visited"],
+            start=start,
+            goal=goal
+        )
+
+        placeholder.pyplot(fig)
+        plt.close(fig)
+
+        time.sleep(0.05)  # 👈 control speed here
+
+    st.session_state.path = step["path"]
+    st.session_state.visited = step["visited"]
     st.session_state.solved = True
 
 # Status
