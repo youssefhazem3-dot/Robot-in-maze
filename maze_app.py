@@ -151,21 +151,7 @@ if pause_btn:
 # ── Animation loop ──
 placeholder = st.empty()
 
-if st.session_state.running:
-    try:
-        cur, visited, path = next(st.session_state.gen)
-        st.session_state.robot = cur
-        st.session_state.visited = visited
-        if path:
-            st.session_state.path = path
-            st.session_state.running = False
-    except StopIteration:
-        st.session_state.running = False
-
-    time.sleep(speed)
-    st.rerun()
-
-# ── Draw ──
+# Always draw something first (IMPORTANT FIX)
 fig = draw_maze(
     maze,
     cols,
@@ -175,6 +161,23 @@ fig = draw_maze(
     robot=st.session_state.robot,
     goal=goal
 )
-
 placeholder.pyplot(fig)
 plt.close(fig)
+
+# ── Animation step ──
+if st.session_state.running:
+    try:
+        cur, visited, path = next(st.session_state.gen)
+
+        st.session_state.robot = cur
+        st.session_state.visited = visited
+
+        if path:
+            st.session_state.path = path
+            st.session_state.running = False
+
+    except StopIteration:
+        st.session_state.running = False
+
+    time.sleep(speed)
+    st.rerun()
