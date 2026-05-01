@@ -118,7 +118,7 @@ st.title("🤖 Robot Maze (Smooth Animation)")
 
 with st.sidebar:
     size = st.select_slider("Grid Size", [11,15,21,25,31], value=21)
-    speed = st.slider("Speed", 0.001, 0.05, 0.01)
+    speed = st.slider("Speed", 0.001, 0.02, 0.005)
     gen_btn = st.button("New Maze")
     solve_btn = st.button("Solve")
 
@@ -140,21 +140,19 @@ placeholder = st.empty()
 
 # ── Animate ──
 if solve_btn:
-    last_draw = time.time()
-
     for visited, path in astar_steps(maze, start, goal, cols, rows):
-        now = time.time()
 
-        # limit FPS (smoothness control)
-        if now - last_draw < speed:
-            continue
+        fig = draw_maze(
+            maze,
+            cols,
+            rows,
+            path=path,
+            visited=visited,
+            start=start,
+            goal=goal
+        )
 
-        fig = draw_maze(maze, cols, rows, path=path, visited=visited, start=start, goal=goal)
         placeholder.pyplot(fig)
         plt.close(fig)
 
-        last_draw = now
-
-else:
-    fig = draw_maze(maze, cols, rows, start=start, goal=goal)
-    placeholder.pyplot(fig)
+        time.sleep(speed)  # 👈 smooth + reliable
