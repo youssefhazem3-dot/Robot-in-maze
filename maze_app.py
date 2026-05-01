@@ -1,33 +1,26 @@
-import streamlit as st
+import reflex as rx
 import random
 import heapq
-import matplotlib.pyplot as plt
-import matplotlib.patches as patches
-import time
+import asyncio
 
-st.set_page_config(page_title="Robot Maze", page_icon="🤖", layout="wide")
-
-# ── Maze generation ──
+# ── Algorithms ──
 def init_grid(cols, rows):
     return [[1] * cols for _ in range(rows)]
 
 def divide(maze, x, y, w, h):
-    if w < 3 or h < 3:
-        return
+    if w < 3 or h < 3: return
     horizontal = (h > w) or (w == h and random.random() < 0.5)
     if horizontal:
-        wy = random.randrange(y + 1, y + h - 1, 2)
-        px = random.randrange(x, x + w, 2)
-        for c in range(x, x + w):
-            maze[wy][c] = 1
+        wy = random.choice(range(y + 1, y + h - 1, 2))
+        px = random.choice(range(x, x + w, 2))
+        for c in range(x, x + w): maze[wy][c] = 1
         maze[wy][px] = 0
         divide(maze, x, y, w, wy - y)
         divide(maze, x, wy + 1, w, h - (wy - y + 1))
     else:
-        wx = random.randrange(x + 1, x + w - 1, 2)
-        py = random.randrange(y, y + h, 2)
-        for r in range(y, y + h):
-            maze[r][wx] = 1
+        wx = random.choice(range(x + 1, x + w - 1, 2))
+        py = random.choice(range(y, y + h, 2))
+        for r in range(y, y + h): maze[r][wx] = 1
         maze[py][wx] = 0
         divide(maze, x, y, wx - x, h)
         divide(maze, wx + 1, y, w - (wx - x + 1), h)
@@ -36,40 +29,27 @@ def gen_maze(size):
     cols = rows = size if size % 2 == 1 else size + 1
     maze = init_grid(cols, rows)
     for r in range(1, rows - 1):
-        for c in range(1, cols - 1):
-            maze[r][c] = 0
+        for c in range(1, cols - 1): maze[r][c] = 0
     divide(maze, 1, 1, cols - 2, rows - 2)
     return maze, cols, rows
 
-# ── A* — returns ALL steps at once (no generator) ──
-def astar_all_steps(maze, start, goal, cols, rows):
-    def h(x, y):
-        return abs(x - goal[0]) + abs(y - goal[1])
-
+def astar(maze, start, goal, cols, rows):
+    def h(x, y): return abs(x - goal[0]) + abs(y - goal[1])
     g_score = {start: 0}
     came_from = {}
-    visited = set()
     open_heap = [(h(*start), 0, start)]
-    steps = []
-
+    all_visited = []
     while open_heap:
-        f, g, cur = heapq.heappop(open_heap)
-        if cur in visited:
-            continue
-        visited.add(cur)
-        steps.append((cur, frozenset(visited), None))
-
+        _, g, cur = heapq.heappop(open_heap)
+        if cur in all_visited: continue
+        all_visited.append(cur)
         if cur == goal:
             path = []
-            node = cur
-            while node in came_from:
-                path.append(node)
-                node = came_from[node]
+            while cur in came_from:
+                path.append(cur)
+                cur = came_from[cur]
             path.append(start)
-            path = path[::-1]
-            steps.append((cur, frozenset(visited), path))
-            return steps
-
+            return path[::-1], all_visited
         cx, cy = cur
         for dx, dy in [(0, -1), (0, 1), (-1, 0), (1, 0)]:
             nx, ny = cx + dx, cy + dy
@@ -79,111 +59,107 @@ def astar_all_steps(maze, start, goal, cols, rows):
                     came_from[(nx, ny)] = cur
                     g_score[(nx, ny)] = ng
                     heapq.heappush(open_heap, (ng + h(nx, ny), ng, (nx, ny)))
+    return None, all_visited
 
-    return steps
+# ── State ──
+class MazeState(rx.State):
+    maze: list[list[int]] = []
+    cols: int = 21
+    rows: int = 21
+    path: list[tuple[int, int]] = []
+    visited: list[tuple[int, int]] = []
+    current_pos: tuple[int, int] = (1, 1)
+    is_animating: bool = False
+    speed: float = 0.5
+    step_idx: int = 0
+    phase: str = "search" # "search" or "path"
 
-# ── Drawing ──
-def draw_maze(maze, cols, rows, path=None, visited=None, robot=None, goal=None):
-    fig, ax = plt.subplots(figsize=(6, 6))
-    fig.patch.set_facecolor('#0d0d0d')
-    ax.set_facecolor('#0d0d0d')
+    def gen_new_maze(self):
+        self.maze, self.cols, self.rows = gen_maze(21)
+        self.path = []
+        self.visited = []
+        self.current_pos = (1, 1)
+        self.is_animating = False
+        self.step_idx = 0
 
-    for r in range(rows):
-        for c in range(cols):
-            color = '#2a2a2a' if maze[r][c] == 1 else '#0d0d0d'
-            ax.add_patch(patches.Rectangle((c, rows - r - 1), 1, 1, color=color))
+    async def start_animation(self):
+        if not self.is_animating:
+            path, visited = astar(self.maze, (1, 1), (self.cols - 2, self.rows - 2), self.cols, self.rows)
+            self.path = path
+            self.visited = visited
+            self.is_animating = True
+            self.step_idx = 0
+            self.phase = "search"
+            
+            # Animation Loop
+            while self.is_animating:
+                if self.phase == "search":
+                    if self.step_idx < len(self.visited):
+                        self.current_pos = self.visited[self.step_idx]
+                        self.step_idx += 1
+                    else:
+                        self.phase = "path"
+                        self.step_idx = 0
+                elif self.phase == "path":
+                    if self.step_idx < len(self.path):
+                        self.current_pos = self.path[self.step_idx]
+                        self.step_idx += 1
+                    else:
+                        self.is_animating = False
+                
+                yield # Update UI
+                await asyncio.sleep(max(0.01, 1.0 - self.speed))
 
-    if visited:
-        for (x, y) in visited:
-            ax.add_patch(patches.Rectangle((x, rows - y - 1), 1, 1, color='#0a2a2a'))
-
-    if path:
-        for (x, y) in path:
-            ax.add_patch(patches.Rectangle((x, rows - y - 1), 1, 1, color='#4ecdc4'))
-
-    if robot:
-        ax.text(robot[0] + 0.5, rows - robot[1] - 0.5, "🤖",
-                ha='center', va='center', fontsize=max(4, 80 // cols))
-
-    if goal:
-        ax.text(goal[0] + 0.5, rows - goal[1] - 0.5, "🎯",
-                ha='center', va='center', fontsize=max(4, 80 // cols))
-
-    ax.set_xlim(0, cols)
-    ax.set_ylim(0, rows)
-    ax.axis('off')
-    plt.tight_layout(pad=0)
-    return fig
-
-# ── State helpers ──
-def reset_state(size):
-    maze, cols, rows = gen_maze(size)
-    st.session_state.maze = maze
-    st.session_state.cols = cols
-    st.session_state.rows = rows
-    st.session_state.steps = None
-    st.session_state.step_idx = 0
-    st.session_state.running = False
-    st.session_state.last_size = size
-
-if "maze" not in st.session_state:
-    reset_state(21)
+    def pause_animation(self):
+        self.is_animating = False
 
 # ── UI ──
-st.title("🤖 Robot Maze")
+def cell(r, c):
+    # Determine color logic
+    is_wall = MazeState.maze[r][c] == 1
+    in_visited = MazeState.visited.contains((c, r))
+    in_path = MazeState.path.contains((c, r))
+    is_current = MazeState.current_pos == (c, r)
+    
+    return rx.box(
+        rx.cond(is_current, "🤖", ""),
+        bg=rx.cond(
+            is_current, "#4ecdc4",
+            rx.cond(in_path, "#0077be",
+                rx.cond(in_visited, "#4ecdc4",
+                    rx.cond(is_wall, "#1e1e1e", "#141414")
+                )
+            )
+        ),
+        width="20px", height="20px",
+        display="flex", align_items="center", justify_content="center",
+        font_size="10px"
+    )
 
-with st.sidebar:
-    size = st.select_slider("Grid Size", [11, 15, 21, 25, 31], value=21)
-    speed = st.slider("Speed (sec/step)", 0.01, 0.2, 0.05)
+def index():
+    return rx.vstack(
+        rx.heading("🤖 Robot Maze", font_family="JetBrains Mono"),
+        rx.hstack(
+            # Sidebar
+            rx.vstack(
+                rx.button("New Maze", on_click=MazeState.gen_new_maze),
+                rx.button("Start", on_click=MazeState.start_animation),
+                rx.button("Pause", on_click=MazeState.pause_animation),
+                rx.slider(on_change=MazeState.set_speed, min=0.1, max=0.9, default=0.5),
+                width="200px"
+            ),
+            # Maze Grid
+            rx.grid(
+                rx.foreach(MazeState.maze, lambda row, r: rx.foreach(row, lambda _, c: cell(r, c))),
+                grid_template_columns=rx.Var.create("repeat(21, 20px)"),
+                gap="1px"
+            )
+        ),
+        padding="2rem",
+        bg="#0d0d0d",
+        color="white",
+        min_height="100vh"
+    )
 
-    col1, col2 = st.columns(2)
-    start_btn = col1.button("▶ Start")
-    pause_btn = col2.button("⏸ Pause")
-    reset_btn = st.button("🔄 Reset")
-
-if reset_btn or st.session_state.get("last_size") != size:
-    reset_state(size)
-
-maze = st.session_state.maze
-cols = st.session_state.cols
-rows = st.session_state.rows
-start = (1, 1)
-goal = (cols - 2, rows - 2)
-
-if start_btn:
-    if st.session_state.steps is None:
-        with st.spinner("Computing path..."):
-            st.session_state.steps = astar_all_steps(maze, start, goal, cols, rows)
-        st.session_state.step_idx = 0
-    st.session_state.running = True
-
-if pause_btn:
-    st.session_state.running = False
-
-# ── Determine frame to draw ──
-steps = st.session_state.steps
-idx = st.session_state.step_idx
-
-if steps and idx < len(steps):
-    robot, visited, path = steps[idx]
-    visited = set(visited)
-else:
-    robot = (1, 1)
-    visited = set()
-    path = None
-
-# ── Draw ──
-placeholder = st.empty()
-fig = draw_maze(maze, cols, rows, path=path, visited=visited, robot=robot, goal=goal)
-placeholder.pyplot(fig)
-plt.close(fig)
-
-# ── Advance one step then rerun ──
-if st.session_state.running and steps:
-    if idx < len(steps) - 1:
-        st.session_state.step_idx += 1
-        time.sleep(speed)
-        st.rerun()
-    else:
-        st.session_state.running = False
-        st.success("Path found! 🎉")
+app = rx.App()
+app.add_page(index)
