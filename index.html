@@ -2,11 +2,21 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Robot Maze — A* Solver</title>
-<style>
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
+<!-- Makes the layout responsive on different screen sizes -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Robot Maze — A* Solver</title>
+
+<style>
+  /* Reset default browser spacing and make sizing easier to control */
+  *, *::before, *::after { 
+    box-sizing: border-box; 
+    margin: 0; 
+    padding: 0; 
+  }
+
+  /* Global color variables used throughout the design */
   :root {
     --bg: #0a0e1a;
     --panel: #0f1529;
@@ -27,13 +37,14 @@
     color: var(--text);
   }
 
+  /* Main application layout: header, main section, footer */
   #app {
     display: grid;
     grid-template-rows: auto 1fr auto;
     min-height: 100vh;
   }
 
-  /* Header */
+  /* Header design */
   header {
     background: var(--panel);
     border-bottom: 1px solid var(--border);
@@ -43,16 +54,24 @@
     gap: 12px;
     flex-wrap: wrap;
   }
-  header h1 { font-size: 20px; font-weight: 600; color: var(--teal); }
+
+  header h1 { 
+    font-size: 20px; 
+    font-weight: 600; 
+    color: var(--teal); 
+  }
+
   .tag {
-    font-size: 11px; font-weight: 600;
-    padding: 3px 10px; border-radius: 20px;
+    font-size: 11px; 
+    font-weight: 600;
+    padding: 3px 10px; 
+    border-radius: 20px;
     background: rgba(0,212,170,.15);
     color: var(--teal);
     border: 1px solid rgba(0,212,170,.3);
   }
 
-  /* Main */
+  /* Main area contains the maze panel and sidebar */
   main {
     display: grid;
     grid-template-columns: 1fr 280px;
@@ -79,15 +98,21 @@
   }
 
   h2 {
-    font-size: 11px; font-weight: 600;
+    font-size: 11px; 
+    font-weight: 600;
     color: var(--muted);
     text-transform: uppercase;
     letter-spacing: 1.5px;
     margin-bottom: 8px;
   }
 
-  /* Controls */
-  .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  /* Controls row */
+  .row { 
+    display: flex; 
+    gap: 8px; 
+    flex-wrap: wrap; 
+    align-items: center; 
+  }
 
   select {
     background: var(--card);
@@ -112,37 +137,83 @@
     transition: all .18s;
     font-family: inherit;
   }
-  button:hover { border-color: var(--teal); color: var(--teal); }
-  button.primary { background: rgba(0,212,170,.15); border-color: var(--teal); color: var(--teal); }
-  button.primary:hover { background: rgba(0,212,170,.28); }
-  button.danger { background: rgba(255,71,87,.1); border-color: var(--red); color: var(--red); }
-  button:disabled { opacity: .35; cursor: not-allowed; }
 
-  .speed-row {
-    display: flex; align-items: center; gap: 10px;
-    font-size: 12px; color: var(--muted);
+  button:hover { 
+    border-color: var(--teal); 
+    color: var(--teal); 
   }
-  input[type=range] { flex: 1; accent-color: var(--teal); }
 
-  /* Status */
+  button.primary { 
+    background: rgba(0,212,170,.15); 
+    border-color: var(--teal); 
+    color: var(--teal); 
+  }
+
+  button.primary:hover { 
+    background: rgba(0,212,170,.28); 
+  }
+
+  button.danger { 
+    background: rgba(255,71,87,.1); 
+    border-color: var(--red); 
+    color: var(--red); 
+  }
+
+  button:disabled { 
+    opacity: .35; 
+    cursor: not-allowed; 
+  }
+
+  /* Speed slider row */
+  .speed-row {
+    display: flex; 
+    align-items: center; 
+    gap: 10px;
+    font-size: 12px; 
+    color: var(--muted);
+  }
+
+  input[type=range] { 
+    flex: 1; 
+    accent-color: var(--teal); 
+  }
+
+  /* Status box */
   .status {
-    display: flex; align-items: center; gap: 8px;
+    display: flex; 
+    align-items: center; 
+    gap: 8px;
     padding: 7px 12px;
     background: var(--card);
     border: 1px solid var(--border);
     border-radius: 8px;
-    font-size: 12px; color: var(--muted);
+    font-size: 12px; 
+    color: var(--muted);
   }
+
   .dot {
-    width: 8px; height: 8px; border-radius: 50%;
-    background: var(--muted); flex-shrink: 0;
+    width: 8px; 
+    height: 8px; 
+    border-radius: 50%;
+    background: var(--muted); 
+    flex-shrink: 0;
     transition: background .3s;
   }
-  .dot.active { background: var(--teal); box-shadow: 0 0 8px rgba(0,212,170,.5); }
-  .dot.done   { background: var(--green); }
-  .dot.error  { background: var(--red); }
 
-  /* Canvas */
+  .dot.active { 
+    background: var(--teal); 
+    box-shadow: 0 0 8px rgba(0,212,170,.5); 
+  }
+
+  .dot.done { 
+    background: var(--green); 
+  }
+
+  .dot.error { 
+    background: var(--red); 
+  }
+
+  /* Canvas where the maze is drawn */
   #canvas {
     border-radius: 12px;
     border: 1px solid var(--border);
@@ -153,36 +224,74 @@
   }
 
   .hint {
-    font-size: 11px; color: var(--muted);
+    font-size: 11px; 
+    color: var(--muted);
     padding: 6px 12px;
     background: var(--card);
     border: 1px solid var(--border);
     border-radius: 8px;
   }
 
-  /* Metrics */
-  .metrics { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  /* Metrics section */
+  .metrics { 
+    display: grid; 
+    grid-template-columns: 1fr 1fr; 
+    gap: 8px; 
+  }
+
   .metric {
     background: var(--card);
     border: 1px solid var(--border);
     border-radius: 10px;
     padding: 12px;
   }
-  .metric-label { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
-  .metric-val {
-    font-size: 22px; font-weight: 600;
-    font-variant-numeric: tabular-nums;
-    color: var(--teal); margin-top: 2px;
+
+  .metric-label { 
+    font-size: 10px; 
+    color: var(--muted); 
+    text-transform: uppercase; 
+    letter-spacing: 1px; 
   }
-  .metric-val.amber { color: var(--amber); }
-  .metric-val.red   { color: var(--red); }
 
-  /* Legend */
-  .legend { display: flex; flex-direction: column; gap: 7px; }
-  .leg { display: flex; align-items: center; gap: 9px; font-size: 12px; color: var(--muted); }
-  .swatch { width: 14px; height: 14px; border-radius: 3px; flex-shrink: 0; }
+  .metric-val {
+    font-size: 22px; 
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    color: var(--teal); 
+    margin-top: 2px;
+  }
 
-  /* How it works */
+  .metric-val.amber { 
+    color: var(--amber); 
+  }
+
+  .metric-val.red { 
+    color: var(--red); 
+  }
+
+  /* Legend section */
+  .legend { 
+    display: flex; 
+    flex-direction: column; 
+    gap: 7px; 
+  }
+
+  .leg { 
+    display: flex; 
+    align-items: center; 
+    gap: 9px; 
+    font-size: 12px; 
+    color: var(--muted); 
+  }
+
+  .swatch { 
+    width: 14px; 
+    height: 14px; 
+    border-radius: 3px; 
+    flex-shrink: 0; 
+  }
+
+  /* Explanation box for A* */
   .info-box {
     background: rgba(0,212,170,.06);
     border: 1px solid rgba(0,212,170,.18);
@@ -192,7 +301,12 @@
     color: var(--muted);
     line-height: 1.65;
   }
-  .info-box strong { color: var(--text); font-weight: 500; }
+
+  .info-box strong { 
+    color: var(--text); 
+    font-weight: 500; 
+  }
+
   .formula {
     display: block;
     font-family: monospace;
@@ -204,7 +318,6 @@
     font-size: 12px;
   }
 
-  /* Footer */
   footer {
     text-align: center;
     padding: 10px;
@@ -214,23 +327,34 @@
     background: var(--panel);
   }
 
+  /* Responsive layout for small screens */
   @media (max-width: 640px) {
-    main { grid-template-columns: 1fr; }
-    #side { border-left: none; border-top: 1px solid var(--border); }
+    main { 
+      grid-template-columns: 1fr; 
+    }
+
+    #side { 
+      border-left: none; 
+      border-top: 1px solid var(--border); 
+    }
   }
 </style>
 </head>
+
 <body>
 <div id="app">
 
+  <!-- Page header -->
   <header>
     <h1>⬡ Robot Maze</h1>
     <span class="tag">A* Search</span>
   </header>
 
   <main>
+    <!-- Main maze area -->
     <div id="maze-panel">
 
+      <!-- Control buttons and maze size selector -->
       <div class="row">
         <select id="sel-size">
           <option value="15">15×15</option>
@@ -238,46 +362,64 @@
           <option value="31">31×31</option>
           <option value="41">41×41</option>
         </select>
+
         <button class="primary" onclick="generate()">⟳ New Maze</button>
         <button class="primary" id="btn-solve" onclick="solve()">▶ Solve</button>
         <button class="danger" onclick="reset()">↺ Reset</button>
       </div>
 
+      <!-- Speed slider controls the animation speed -->
       <div class="speed-row">
         <span>Speed</span>
-        <input type="range" id="speed" min="1" max="10" value="6" step="1"
-               oninput="document.getElementById('spd-lbl').textContent=this.value">
+        <input 
+          type="range" 
+          id="speed" 
+          min="1" 
+          max="10" 
+          value="6" 
+          step="1"
+          oninput="document.getElementById('spd-lbl').textContent=this.value"
+        >
         <span id="spd-lbl">6</span>
       </div>
 
+      <!-- Status message -->
       <div class="status">
         <div class="dot" id="dot"></div>
         <span id="status-txt">Ready — generate a maze and hit Solve</span>
       </div>
 
+      <!-- The maze is drawn here -->
       <canvas id="canvas"></canvas>
 
-      <div class="hint">Click a cell to move the robot &nbsp;·&nbsp; Shift+Click to move the goal</div>
+      <div class="hint">
+        Click a cell to move the robot &nbsp;·&nbsp; Shift+Click to move the goal
+      </div>
 
     </div>
 
+    <!-- Sidebar with metrics, explanation, and legend -->
     <aside id="side">
 
       <section>
         <h2>Metrics</h2>
+
         <div class="metrics">
           <div class="metric">
             <div class="metric-label">Visited</div>
             <div class="metric-val" id="m-vis">0</div>
           </div>
+
           <div class="metric">
             <div class="metric-label">Frontier</div>
             <div class="metric-val amber" id="m-front">0</div>
           </div>
+
           <div class="metric">
             <div class="metric-label">Path</div>
             <div class="metric-val" id="m-path">—</div>
           </div>
+
           <div class="metric">
             <div class="metric-label">Time (ms)</div>
             <div class="metric-val red" id="m-time">0</div>
@@ -287,18 +429,23 @@
 
       <section>
         <h2>How A* works</h2>
+
         <div class="info-box">
           <strong>A* always finds the shortest path.</strong><br>
           At every step it picks the node with the lowest score:
+
           <span class="formula">f(n) = g(n) + h(n)</span>
+
           <strong>g(n)</strong> — exact steps taken so far<br>
           <strong>h(n)</strong> — Manhattan distance to goal<br><br>
+
           This guarantees optimality while exploring far fewer nodes than BFS.
         </div>
       </section>
 
       <section>
         <h2>Legend</h2>
+
         <div class="legend">
           <div class="leg"><div class="swatch" style="background:#00d4aa"></div>Solution path</div>
           <div class="leg"><div class="swatch" style="background:#0e1f38"></div>Visited</div>
@@ -315,214 +462,588 @@
   <footer>Robot Maze Solver &nbsp;·&nbsp; A* Pathfinding</footer>
 
 </div>
+
 <script>
-const cv  = document.getElementById('canvas');
+/* ============================================================
+   CANVAS SETUP
+   ============================================================ */
+
+// Get the canvas element from the HTML
+const cv = document.getElementById('canvas');
+
+// Get the 2D drawing context.
+// This is used to draw rectangles, circles, lines, and text.
 const ctx = cv.getContext('2d');
 
-let COLS, ROWS, CELL;
-let maze = [], robot = {x:1,y:1}, goal = {x:0,y:0};
-let solving = false;
-let visited = new Set(), frontier = new Set(), path = new Set();
-let timer = null, t0 = 0;
 
-/* ── helpers ── */
-const key = (x,y) => `${x},${y}`;
+/* ============================================================
+   GLOBAL VARIABLES
+   ============================================================ */
+
+// COLS and ROWS store the maze dimensions.
+// CELL stores the pixel size of each grid cell.
+let COLS, ROWS, CELL;
+
+// maze is a 2D array.
+// 0 means open path.
+// 1 means wall.
+let maze = [];
+
+// Initial robot and goal positions.
+// These will be updated when the maze is generated.
+let robot = {x:1, y:1};
+let goal = {x:0, y:0};
+
+// solving tells us whether A* is currently running.
+let solving = false;
+
+// visited stores cells that A* has already explored.
+// frontier stores cells that are waiting to be explored.
+// path stores the final solution path.
+let visited = new Set();
+let frontier = new Set();
+let path = new Set();
+
+// timer stores the setTimeout reference for animation.
+// t0 stores the start time of the solving process.
+let timer = null;
+let t0 = 0;
+
+
+/* ============================================================
+   HELPER FUNCTIONS
+   ============================================================ */
+
+// Converts x and y coordinates into a string key.
+// Example: key(3, 5) returns "3,5".
+// This makes it easy to store cells inside Set and Map.
+const key = (x, y) => `${x},${y}`;
+
+// Updates the status text and status dot.
 const setStatus = (msg, state='') => {
   document.getElementById('status-txt').textContent = msg;
-  document.getElementById('dot').className = 'dot' + (state ? ' '+state : '');
-};
-const setMetrics = (v,f,p,t) => {
-  document.getElementById('m-vis').textContent   = v;
-  document.getElementById('m-front').textContent = f;
-  document.getElementById('m-path').textContent  = p ?? '—';
-  document.getElementById('m-time').textContent  = t;
+  document.getElementById('dot').className = 'dot' + (state ? ' ' + state : '');
 };
 
-/* ── maze init ── */
+// Updates the metric values displayed in the sidebar.
+const setMetrics = (v, f, p, t) => {
+  document.getElementById('m-vis').textContent = v;
+  document.getElementById('m-front').textContent = f;
+  document.getElementById('m-path').textContent = p ?? '—';
+  document.getElementById('m-time').textContent = t;
+};
+
+
+/* ============================================================
+   GRID INITIALIZATION
+   ============================================================ */
+
 function initGrid() {
+  // Get the selected maze size from the dropdown.
   COLS = parseInt(document.getElementById('sel-size').value);
   ROWS = COLS;
+
+  // Calculate the available space for the canvas.
+  // The maze size adjusts to the screen.
   const avail = Math.min(
     document.getElementById('maze-panel').clientWidth - 40,
     window.innerHeight - 220
   );
+
+  // Calculate the size of each cell.
+  // Minimum cell size is 8 pixels.
   CELL = Math.max(8, Math.floor(avail / COLS));
-  cv.width  = COLS * CELL;
+
+  // Set the canvas width and height based on the number of cells.
+  cv.width = COLS * CELL;
   cv.height = ROWS * CELL;
-  maze = Array.from({length:ROWS}, () => Array(COLS).fill(1));
+
+  // Create a 2D array filled with walls.
+  // At the beginning, every cell is set to 1.
+  maze = Array.from({length: ROWS}, () => Array(COLS).fill(1));
+
+  // Put the robot near the top-left corner.
   robot = {x:1, y:1};
-  goal  = {x:COLS-2, y:ROWS-2};
+
+  // Put the goal near the bottom-right corner.
+  goal = {x:COLS-2, y:ROWS-2};
 }
 
-/* ── generator: Recursive Division ── */
+
+/* ============================================================
+   MAZE GENERATION: RECURSIVE DIVISION
+   ============================================================ */
+
 function genDiv() {
-  for (let r=1;r<ROWS-1;r++) for (let c=1;c<COLS-1;c++) maze[r][c]=0;
-  divide(1,1,COLS-2,ROWS-2);
+  // Make all inner cells open paths.
+  // The outer border remains walls.
+  for (let r = 1; r < ROWS - 1; r++) {
+    for (let c = 1; c < COLS - 1; c++) {
+      maze[r][c] = 0;
+    }
+  }
+
+  // Start dividing the inner maze area.
+  divide(1, 1, COLS - 2, ROWS - 2);
 }
-function divide(x,y,w,h) {
-  if (w<3||h<3) return;
-  const hz = h>w ? true : w>h ? false : Math.random()<.5;
+
+function divide(x, y, w, h) {
+  // Stop if the current region is too small to divide.
+  if (w < 3 || h < 3) return;
+
+  // Decide whether to split horizontally or vertically.
+  // If height is greater, split horizontally.
+  // If width is greater, split vertically.
+  // If they are equal, choose randomly.
+  const hz = h > w ? true : w > h ? false : Math.random() < .5;
+
   if (hz) {
-    const wy = y+1+((Math.random()*Math.floor((h-2)/2))|0)*2;
-    const px = x+((Math.random()*Math.ceil(w/2))|0)*2;
-    for (let c=x;c<x+w;c++) maze[wy][c]=1;
-    maze[wy][px]=0;
-    divide(x,y,w,wy-y); divide(x,wy+1,w,h-(wy-y+1));
+    // Choose the y-position of the horizontal wall.
+    const wy = y + 1 + ((Math.random() * Math.floor((h - 2) / 2)) | 0) * 2;
+
+    // Choose the x-position of the passage through the wall.
+    const px = x + ((Math.random() * Math.ceil(w / 2)) | 0) * 2;
+
+    // Draw the horizontal wall.
+    for (let c = x; c < x + w; c++) {
+      maze[wy][c] = 1;
+    }
+
+    // Create one opening in the wall.
+    // This keeps the maze connected.
+    maze[wy][px] = 0;
+
+    // Recursively divide the top and bottom regions.
+    divide(x, y, w, wy - y);
+    divide(x, wy + 1, w, h - (wy - y + 1));
+
   } else {
-    const wx = x+1+((Math.random()*Math.floor((w-2)/2))|0)*2;
-    const py = y+((Math.random()*Math.ceil(h/2))|0)*2;
-    for (let r=y;r<y+h;r++) maze[r][wx]=1;
-    maze[py][wx]=0;
-    divide(x,y,wx-x,h); divide(wx+1,y,w-(wx-x+1),h);
+    // Choose the x-position of the vertical wall.
+    const wx = x + 1 + ((Math.random() * Math.floor((w - 2) / 2)) | 0) * 2;
+
+    // Choose the y-position of the passage through the wall.
+    const py = y + ((Math.random() * Math.ceil(h / 2)) | 0) * 2;
+
+    // Draw the vertical wall.
+    for (let r = y; r < y + h; r++) {
+      maze[r][wx] = 1;
+    }
+
+    // Create one opening in the wall.
+    maze[py][wx] = 0;
+
+    // Recursively divide the left and right regions.
+    divide(x, y, wx - x, h);
+    divide(wx + 1, y, w - (wx - x + 1), h);
   }
 }
 
-/* ── A* solver ── */
+
+/* ============================================================
+   A* SOLVER
+   ============================================================ */
+
 function solve() {
+  // Do nothing if there is no maze or the solver is already running.
   if (!maze.length || solving) return;
+
+  // Clear previous solving data, but do not redraw yet.
   reset(false);
+
+  // Mark the algorithm as running.
   solving = true;
+
+  // Disable the solve button to prevent multiple runs at the same time.
   document.getElementById('btn-solve').disabled = true;
+
+  // Update status.
   setStatus('Solving with A*…', 'active');
+
+  // Store the start time for performance measurement.
   t0 = performance.now();
 
+  // Convert robot and goal positions into string keys.
   const start = key(robot.x, robot.y);
-  const gk    = key(goal.x, goal.y);
-  const h = (x,y) => Math.abs(x-goal.x) + Math.abs(y-goal.y);
+  const gk = key(goal.x, goal.y);
+
+  // Heuristic function: Manhattan Distance.
+  // This estimates the distance from a cell to the goal.
+  const h = (x, y) => Math.abs(x - goal.x) + Math.abs(y - goal.y);
+
+  // g stores the real cost from the start to each cell.
+  // The start cell has cost 0.
   const g = {[start]: 0};
+
+  // from stores where each cell came from.
+  // It is used later to reconstruct the final path.
   const from = {};
-  const open = new Map([[start, {x:robot.x, y:robot.y}]]);
-  let pq = [{f: h(robot.x,robot.y), k: start}];
-  const spd = () => Math.max(2, 110 - parseInt(document.getElementById('speed').value)*10);
+
+  // open contains cells that can still be explored.
+  const open = new Map([[start, {x: robot.x, y: robot.y}]]);
+
+  // pq is a simple priority queue.
+  // Each item contains the f-score and the cell key.
+  let pq = [{f: h(robot.x, robot.y), k: start}];
+
+  // Animation speed.
+  // Higher slider value means lower delay.
+  const spd = () => Math.max(
+    2, 
+    110 - parseInt(document.getElementById('speed').value) * 10
+  );
 
   function step() {
+    // If solving stopped or there are no more cells to explore.
     if (!solving || !pq.length) {
-      if (!pq.length) { setStatus('No path found!','error'); }
+      if (!pq.length) {
+        setStatus('No path found!', 'error');
+      }
+
       solving = false;
       document.getElementById('btn-solve').disabled = false;
       return;
     }
-    pq.sort((a,b) => a.f-b.f);
-    const {k:ck} = pq.shift();
+
+    // Sort the priority queue by f-score.
+    // The lowest f-score is explored first.
+    pq.sort((a, b) => a.f - b.f);
+
+    // Remove the cell with the lowest f-score.
+    const {k: ck} = pq.shift();
+
+    // Get the current cell from the open set.
     const cur = open.get(ck);
-    if (!cur) { timer = setTimeout(step, 1); return; }
+
+    // If this cell is no longer in open, skip it.
+    if (!cur) {
+      timer = setTimeout(step, 1);
+      return;
+    }
+
+    // Remove current cell from open because it is now being processed.
     open.delete(ck);
 
+    // If the current cell is the goal, the path has been found.
     if (ck === gk) {
       solving = false;
+
+      // Reconstruct the path by going backwards from goal to start.
       let c = ck;
-      while (c) { path.add(c); c = from[c]; }
-      setMetrics(visited.size, 0, path.size-1, Math.round(performance.now()-t0));
-      setStatus(`Done! Path: ${path.size-1} steps · ${Math.round(performance.now()-t0)}ms`, 'done');
+      while (c) {
+        path.add(c);
+        c = from[c];
+      }
+
+      // Update metrics.
+      // path.size - 1 is used because steps = number of cells - 1.
+      setMetrics(
+        visited.size, 
+        0, 
+        path.size - 1, 
+        Math.round(performance.now() - t0)
+      );
+
+      // Update status message.
+      setStatus(
+        `Done! Path: ${path.size - 1} steps · ${Math.round(performance.now() - t0)}ms`, 
+        'done'
+      );
+
+      // Draw the final path.
       draw();
+
+      // Re-enable the solve button.
       document.getElementById('btn-solve').disabled = false;
       return;
     }
 
-    visited.add(ck); frontier.delete(ck);
-    const [cx,cy] = ck.split(',').map(Number);
+    // Mark current cell as visited.
+    visited.add(ck);
 
-    [[0,-1],[0,1],[-1,0],[1,0]].forEach(([dx,dy]) => {
-      const nx=cx+dx, ny=cy+dy;
-      if (nx<0||ny<0||nx>=COLS||ny>=ROWS||maze[ny][nx]!==0) return;
-      const nk = key(nx,ny);
+    // Remove it from frontier because it is no longer waiting.
+    frontier.delete(ck);
+
+    // Convert the current key back into x and y numbers.
+    const [cx, cy] = ck.split(',').map(Number);
+
+    // Check the four possible movement directions:
+    // up, down, left, right.
+    [[0,-1], [0,1], [-1,0], [1,0]].forEach(([dx, dy]) => {
+      const nx = cx + dx;
+      const ny = cy + dy;
+
+      // Ignore invalid cells:
+      // outside the maze or inside a wall.
+      if (
+        nx < 0 || 
+        ny < 0 || 
+        nx >= COLS || 
+        ny >= ROWS || 
+        maze[ny][nx] !== 0
+      ) {
+        return;
+      }
+
+      // Convert neighbor coordinates into a key.
+      const nk = key(nx, ny);
+
+      // Ignore cells that were already visited.
       if (visited.has(nk)) return;
-      const tg = (g[ck]||0)+1;
-      if (tg < (g[nk]??Infinity)) {
-        from[nk]=ck; g[nk]=tg;
-        open.set(nk,{x:nx,y:ny}); frontier.add(nk);
-        pq.push({f: tg+h(nx,ny), k: nk});
+
+      // Tentative g-score:
+      // cost to reach this neighbor through the current cell.
+      const tg = (g[ck] || 0) + 1;
+
+      // If this path to the neighbor is better than any previous path,
+      // update the neighbor information.
+      if (tg < (g[nk] ?? Infinity)) {
+        // Store where this neighbor came from.
+        from[nk] = ck;
+
+        // Store the new best cost.
+        g[nk] = tg;
+
+        // Add the neighbor to the open set.
+        open.set(nk, {x: nx, y: ny});
+
+        // Add it to the frontier for visualization.
+        frontier.add(nk);
+
+        // Calculate f = g + h and add it to the priority queue.
+        pq.push({f: tg + h(nx, ny), k: nk});
       }
     });
 
-    setMetrics(visited.size, open.size, null, Math.round(performance.now()-t0));
+    // Update metrics during solving.
+    setMetrics(
+      visited.size, 
+      open.size, 
+      null, 
+      Math.round(performance.now() - t0)
+    );
+
+    // Redraw the maze to show the current solving progress.
     draw();
+
+    // Continue to the next step after a delay.
     timer = setTimeout(step, spd());
   }
+
+  // Start the step-by-step A* process.
   step();
 }
 
-/* ── drawing ── */
+
+/* ============================================================
+   DRAWING THE MAZE
+   ============================================================ */
+
 function draw() {
-  ctx.clearRect(0,0,cv.width,cv.height);
-  for (let r=0;r<ROWS;r++) {
-    for (let c=0;c<COLS;c++) {
-      const k2 = key(c,r);
+  // Clear the whole canvas before drawing the new frame.
+  ctx.clearRect(0, 0, cv.width, cv.height);
+
+  // Draw each cell in the maze.
+  for (let r = 0; r < ROWS; r++) {
+    for (let c = 0; c < COLS; c++) {
+      const k2 = key(c, r);
+
+      // Default color for empty open cells.
       let fill = '#060a14';
-      if      (maze[r][c]===1)    fill = '#1a2240';
-      else if (path.has(k2))      fill = 'rgba(0,212,170,.4)';
-      else if (visited.has(k2))   fill = '#0e1f38';
-      else if (frontier.has(k2))  fill = '#0d2a1e';
+
+      // Choose color depending on the cell type/state.
+      if (maze[r][c] === 1) {
+        fill = '#1a2240';              // Wall
+      } else if (path.has(k2)) {
+        fill = 'rgba(0,212,170,.4)';   // Final path
+      } else if (visited.has(k2)) {
+        fill = '#0e1f38';              // Visited cell
+      } else if (frontier.has(k2)) {
+        fill = '#0d2a1e';              // Frontier cell
+      }
+
+      // Draw the cell as a rectangle.
       ctx.fillStyle = fill;
-      ctx.fillRect(c*CELL, r*CELL, CELL, CELL);
+      ctx.fillRect(c * CELL, r * CELL, CELL, CELL);
     }
   }
-  // path line
+
+  // Draw the final solution path as a line.
   if (path.size > 1) {
+    // Convert path keys into x and y points.
     const pts = [...path].map(k2 => k2.split(',').map(Number));
+
     ctx.beginPath();
     ctx.strokeStyle = 'rgba(0,212,170,.85)';
-    ctx.lineWidth = Math.max(2, CELL*.35);
-    ctx.lineCap = 'round'; ctx.lineJoin = 'round';
-    pts.forEach(([x,y],i) => i===0
-      ? ctx.moveTo(x*CELL+CELL/2, y*CELL+CELL/2)
-      : ctx.lineTo(x*CELL+CELL/2, y*CELL+CELL/2));
+    ctx.lineWidth = Math.max(2, CELL * .35);
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+
+    // Draw line through the path points.
+    pts.forEach(([x, y], i) => {
+      if (i === 0) {
+        ctx.moveTo(x * CELL + CELL / 2, y * CELL + CELL / 2);
+      } else {
+        ctx.lineTo(x * CELL + CELL / 2, y * CELL + CELL / 2);
+      }
+    });
+
     ctx.stroke();
   }
-  // goal
-  const gx=goal.x*CELL+CELL/2, gy=goal.y*CELL+CELL/2, gr=CELL*.4;
-  ctx.beginPath(); ctx.arc(gx,gy,gr,0,Math.PI*2);
-  ctx.fillStyle='rgba(255,71,87,.2)'; ctx.fill();
-  ctx.strokeStyle='#ff4757'; ctx.lineWidth=2; ctx.stroke();
-  ctx.fillStyle='#ff4757';
-  ctx.font=`${Math.max(10,CELL*.5)}px sans-serif`;
-  ctx.textAlign='center'; ctx.textBaseline='middle';
-  ctx.fillText('⚑',gx,gy);
-  // robot
-  const rx=robot.x*CELL+CELL/2, ry=robot.y*CELL+CELL/2, rr=CELL*.4;
-  ctx.beginPath(); ctx.arc(rx,ry,rr,0,Math.PI*2);
-  ctx.fillStyle='rgba(245,166,35,.2)'; ctx.fill();
-  ctx.strokeStyle='#f5a623'; ctx.lineWidth=2; ctx.stroke();
-  ctx.fillStyle='#f5a623';
-  ctx.font=`${Math.max(10,CELL*.5)}px sans-serif`;
-  ctx.textAlign='center'; ctx.textBaseline='middle';
-  ctx.fillText('⬡',rx,ry);
+
+  // Draw the goal.
+  const gx = goal.x * CELL + CELL / 2;
+  const gy = goal.y * CELL + CELL / 2;
+  const gr = CELL * .4;
+
+  ctx.beginPath();
+  ctx.arc(gx, gy, gr, 0, Math.PI * 2);
+  ctx.fillStyle = 'rgba(255,71,87,.2)';
+  ctx.fill();
+  ctx.strokeStyle = '#ff4757';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+  ctx.fillStyle = '#ff4757';
+  ctx.font = `${Math.max(10, CELL * .5)}px sans-serif`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('⚑', gx, gy);
+
+  // Draw the robot.
+  const rx = robot.x * CELL + CELL / 2;
+  const ry = robot.y * CELL + CELL / 2;
+  const rr = CELL * .4;
+
+  ctx.beginPath();
+  ctx.arc(rx, ry, rr, 0, Math.PI * 2);
+  ctx.fillStyle = 'rgba(245,166,35,.2)';
+  ctx.fill();
+  ctx.strokeStyle = '#f5a623';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+  ctx.fillStyle = '#f5a623';
+  ctx.font = `${Math.max(10, CELL * .5)}px sans-serif`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('⬡', rx, ry);
 }
 
-/* ── controls ── */
+
+/* ============================================================
+   CONTROL FUNCTIONS
+   ============================================================ */
+
 function generate() {
+  // Stop any running animation.
   clearTimeout(timer);
+
+  // Initialize the grid.
   initGrid();
+
+  // Generate the maze using Recursive Division.
   genDiv();
+
+  // Clear old solving data.
   reset(false);
+
+  // Draw the new maze.
   draw();
+
+  // Update status message.
   setStatus('Maze ready — hit Solve');
 }
 
-function reset(redraw=true) {
+function reset(redraw = true) {
+  // Stop any running solver animation.
   clearTimeout(timer);
+
+  // Mark solver as stopped.
   solving = false;
-  visited.clear(); frontier.clear(); path.clear();
-  setMetrics(0,0,null,0);
+
+  // Clear search visualization data.
+  visited.clear();
+  frontier.clear();
+  path.clear();
+
+  // Reset metrics.
+  setMetrics(0, 0, null, 0);
+
+  // Update status.
   setStatus('Ready');
+
+  // Re-enable solve button.
   document.getElementById('btn-solve').disabled = false;
+
+  // Redraw only if requested.
   if (redraw) draw();
 }
 
+
+/* ============================================================
+   MOUSE INTERACTION
+   ============================================================ */
+
 cv.addEventListener('click', e => {
+  // Do not allow moving robot or goal while solving.
   if (solving) return;
+
+  // Get the canvas position on the page.
   const r = cv.getBoundingClientRect();
-  const sx = cv.width/r.width, sy = cv.height/r.height;
-  const cx = Math.floor((e.clientX-r.left)*sx/CELL);
-  const cy = Math.floor((e.clientY-r.top)*sy/CELL);
-  if (cx<0||cy<0||cx>=COLS||cy>=ROWS||!maze[cy]||maze[cy][cx]!==0) return;
-  if (e.shiftKey) goal = {x:cx,y:cy};
-  else            robot = {x:cx,y:cy};
-  reset(false); draw();
+
+  // Calculate scale in case the canvas is visually resized by CSS.
+  const sx = cv.width / r.width;
+  const sy = cv.height / r.height;
+
+  // Convert mouse position into maze cell coordinates.
+  const cx = Math.floor((e.clientX - r.left) * sx / CELL);
+  const cy = Math.floor((e.clientY - r.top) * sy / CELL);
+
+  // Ignore clicks outside the maze or on walls.
+  if (
+    cx < 0 || 
+    cy < 0 || 
+    cx >= COLS || 
+    cy >= ROWS || 
+    !maze[cy] || 
+    maze[cy][cx] !== 0
+  ) {
+    return;
+  }
+
+  // Shift + click moves the goal.
+  // Normal click moves the robot.
+  if (e.shiftKey) {
+    goal = {x: cx, y: cy};
+  } else {
+    robot = {x: cx, y: cy};
+  }
+
+  // Clear old solution and redraw.
+  reset(false);
+  draw();
 });
 
-window.addEventListener('resize', () => { if (maze.length) { initGrid(); draw(); } });
 
+/* ============================================================
+   WINDOW RESIZE HANDLING
+   ============================================================ */
+
+window.addEventListener('resize', () => {
+  // If a maze exists, reinitialize the grid and redraw.
+  // Note: This recreates the grid size and may reset the maze.
+  if (maze.length) {
+    initGrid();
+    draw();
+  }
+});
+
+
+/* ============================================================
+   START THE APPLICATION
+   ============================================================ */
+
+// Generate the first maze automatically when the page loads.
 generate();
 </script>
 </body>
